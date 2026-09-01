@@ -38,7 +38,10 @@ def test_missing_artifact_error_points_to_hub_fetch(tmp_path):
 
     with pytest.raises(
         ai_detector.ArtifactNotReadyError,
-        match=r"download-models\.py --fetch --model distilbert",
+        match=(
+            r"uv run python scripts/15_classifier-api/"
+            r"download-models\.py --fetch --model distilbert"
+        ),
     ):
         ai_detector.ensure_artifact_ready(spec)
 

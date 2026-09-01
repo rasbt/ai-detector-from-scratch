@@ -51,8 +51,13 @@ uv run python scripts/15_classifier-api/classify.py --list-models
 ```
 
 The selected model must be marked ready under the top-level `models/`
-directory. Download a missing model with `download-models.py --fetch --model
-MODEL_NAME`.
+directory. Download a missing model with:
+
+```bash
+uv run python scripts/15_classifier-api/download-models.py \
+  --fetch \
+  --model MODEL_NAME
+```
 
 &nbsp;
 ## Start the app
@@ -66,9 +71,26 @@ uv run python scripts/17_browser-ui/app.py
 Select another model at launch with `--model`. For example:
 
 ```bash
+uv run python scripts/15_classifier-api/download-models.py \
+  --fetch \
+  --model qwen3-variable
+```
+
+Then start the app:
+
+```bash
 uv run python scripts/17_browser-ui/app.py \
   --model qwen3-variable \
   --device mps
+```
+
+Alternatively, explicitly fetch the selected model when it is missing:
+
+```bash
+uv run python scripts/17_browser-ui/app.py \
+  --model qwen3-variable \
+  --device mps \
+  --fetch-missing
 ```
 
 On a CUDA machine:

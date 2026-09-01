@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 from fastapi.testclient import TestClient
+import pytest
 
 
 MODULE_PATH = (
@@ -98,6 +99,58 @@ def test_selected_model_loads_once_at_startup(monkeypatch, tmp_path):
         client.post("/api/check", json={"text": "word " * module.MIN_WORDS})
 
     assert load_calls == [("distilbert", None, "cpu")]
+
+
+def test_fetch_missing_model_runs_the_existing_downloader(tmp_path):
+    module = load_module()
+    calls = []
+
+    class Result:
+        returncode = 0
+
+    def fake_run(command):
+        calls.append(command)
+        return Result()
+
+    module.fetch_missing_model(
+        "qwen3-variable",
+        project_dir=tmp_path,
+        run_command=fake_run,
+    )
+
+    assert calls == [[
+        sys.executable,
+        str(
+            tmp_path
+            / "scripts"
+            / "15_classifier-api"
+            / "download-models.py"
+        ),
+        "--fetch",
+        "--model",
+        "qwen3-variable",
+    ]]
+
+
+def test_fetch_missing_model_avoids_network_when_artifact_is_ready(
+    tmp_path,
+):
+    module = load_module()
+    artifact = tmp_path / "models" / "qwen3-variable"
+    artifact.mkdir(parents=True)
+    (artifact / "detector-config.json").write_text(
+        "{}", encoding="utf-8"
+    )
+    (artifact / "model.safetensors").write_bytes(b"weights")
+
+    def fail_if_called(command):
+        pytest.fail(f"Unexpected download command: {command}")
+
+    module.fetch_missing_model(
+        "qwen3-variable",
+        project_dir=tmp_path,
+        run_command=fail_if_called,
+    )
 
 
 def test_chunk_mode_scores_non_overlapping_chunks(tmp_path):

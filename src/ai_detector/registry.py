@@ -112,7 +112,8 @@ def ensure_artifact_ready(spec):
         return
     raise ArtifactNotReadyError(
         f"{spec.name} is not ready: {status}. Expected export at "
-        f"{spec.artifact_path}. Run download-models.py --fetch --model "
-        f"{spec.name}, or pass "
+        f"{spec.artifact_path}. Run `uv run python "
+        "scripts/15_classifier-api/download-models.py --fetch --model "
+        f"{spec.name}`, or pass "
         "--artifact with a complete export."
     )

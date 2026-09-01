@@ -5,6 +5,8 @@ import argparse
 from contextlib import asynccontextmanager
 from pathlib import Path
 import re
+import subprocess
+import sys
 
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +20,7 @@ MIN_WORDS = 50
 MIN_CHUNK_SIZE = 10
 
 from ai_detector import (
+    artifact_status,
     load_classifier,
     model_registry,
     score_payload,
@@ -51,6 +54,36 @@ CheckResponse = create_model(
 
 def count_words(text):
     return len(re.findall(r"\S+", text.strip()))
+
+
+def fetch_missing_model(
+    model_name,
+    *,
+    project_dir=PROJECT_DIR,
+    run_command=None,
+):
+    spec = model_registry(project_dir)[model_name]
+    ready, _ = artifact_status(spec)
+    if ready:
+        return
+
+    if run_command is None:
+        run_command = subprocess.run
+    command = [
+        sys.executable,
+        str(
+            project_dir
+            / "scripts"
+            / "15_classifier-api"
+            / "download-models.py"
+        ),
+        "--fetch",
+        "--model",
+        model_name,
+    ]
+    result = run_command(command)
+    if result.returncode:
+        raise SystemExit(result.returncode)
 
 
 def classifier_chunk_limit(classifier):
@@ -297,11 +330,18 @@ def parse_args():
         default="auto",
         help="Torch inference device.",
     )
+    parser.add_argument(
+        "--fetch-missing",
+        action="store_true",
+        help="Download the selected model from the Hugging Face Hub if needed.",
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     if not 1 <= args.port <= 65_535:
         parser.error("--port must be between 1 and 65535")
+    if args.fetch_missing and args.artifact is not None:
+        parser.error("--fetch-missing cannot be combined with --artifact")
     return args
 
 
@@ -309,6 +349,8 @@ if __name__ == "__main__":
     import uvicorn
 
     args = parse_args()
+    if args.fetch_missing:
+        fetch_missing_model(args.model)
     selected_app = create_app(
         model_name=args.model,
         artifact_path=args.artifact,
