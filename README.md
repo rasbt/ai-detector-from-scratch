@@ -131,9 +131,33 @@ human-written according to the selected classifier.
 
 ![Local browser UI with 100-token chunk analysis](images/browser-ui.webp)
 
-After completing the one-time frontend setup described in the
-[`scripts/17_browser-ui`](scripts/17_browser-ui/README.md) README, start the
-interface with:
+Install the browser UI and transformer inference dependencies:
+
+```bash
+uv sync --group browser-ui --group transformer-inference
+```
+
+Build the frontend once:
+
+```bash
+cd scripts/17_browser-ui/frontend
+npm ci --ignore-scripts --audit=false --fund=false
+npm run build
+cd ../../..
+```
+
+See the [`scripts/17_browser-ui`](scripts/17_browser-ui/README.md) README if
+the frontend build reports an esbuild installation problem.
+
+Download the Qwen3 detector's trained artifact once before the first launch:
+
+```bash
+uv run python scripts/15_classifier-api/download-models.py \
+  --fetch \
+  --model qwen3-variable
+```
+
+Then start the interface:
 
 ```bash
 uv run python scripts/17_browser-ui/app.py \
